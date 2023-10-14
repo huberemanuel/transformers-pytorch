@@ -27,6 +27,8 @@ class SelfAttention(nn.Module):
         keys = self.keys(keys)
         queries = self.queries(queries)
 
+        # TODO: Check if this is equivalent to projecting each q,k,v to separate W matrices and
+        # them concatenating them back?
         values = values.reshape(N, value_len, self.heads, self.head_dim)
         keys = keys.reshape(N, key_len, self.heads, self.head_dim)
         queries = queries.reshape(N, query_len, self.heads, self.head_dim)
@@ -220,6 +222,10 @@ class Transformer(nn.Module):
         self.src_pad_idx = src_pad_idx
         self.tgt_pad_idx = tgt_pad_idx
         self.device = device
+
+        for p in self.parameters():
+            if p.dim() > 1:
+                nn.init.xavier_uniform_(p)
 
     def make_src_mask(self, src):
         src_mask = (src != self.src_pad_idx).unsqueeze(1).unsqueeze(2)
