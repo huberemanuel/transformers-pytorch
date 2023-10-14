@@ -49,20 +49,27 @@ class SelfAttention(nn.Module):
 
 
 class TransformerBlock(nn.Module):
-    def __init__(self, embed_size: int = 512, heads: int = 8, dropout: float = 0.1):
+    def __init__(
+        self,
+        embed_size: int = 512,
+        heads: int = 8,
+        ff_dim: int = 2048,
+        dropout: float = 0.1,
+    ):
         super().__init__()
         self.embed_size = embed_size
         self.multi_head_attention = SelfAttention(embed_size, heads)
         self.norm1 = nn.LayerNorm(embed_size)
         self.norm2 = nn.LayerNorm(embed_size)
-        self.fc = nn.Linear(embed_size, embed_size)
+        self.fc1 = nn.Linear(embed_size, ff_dim)
+        self.fc2 = nn.Linear(ff_dim, embed_size)
         self.drop1 = nn.Dropout(dropout)
         self.drop2 = nn.Dropout(dropout)
 
     def forward(self, x, value, key, query, mask=None):
         out = self.multi_head_attention(value, key, query, mask)
         x = self.norm1(x + self.drop1(out))
-        out = self.fc(x)
+        out = self.fc2(self.fc1(x).relu())
         out = self.norm2(x + self.drop2(out))
         return out
 
@@ -76,6 +83,7 @@ class Encoder(nn.Module):
         heads: int = 8,
         device: str = "cuda",
         max_seq_len: int = 100,
+        ff_dim: int = 2048,
         dropout: float = 0.1,
     ):
         super().__init__()
@@ -91,7 +99,9 @@ class Encoder(nn.Module):
         )
         self.layers = nn.ModuleList(
             [
-                TransformerBlock(embed_size=embed_size, heads=heads, dropout=dropout)
+                TransformerBlock(
+                    embed_size=embed_size, heads=heads, ff_dim=ff_dim, dropout=dropout
+                )
                 for _ in range(num_layers)
             ]
         )
@@ -105,12 +115,18 @@ class Encoder(nn.Module):
 
 
 class DecoderBlock(nn.Module):
-    def __init__(self, embed_size: int = 512, heads: int = 8, dropout: float = 0.1):
+    def __init__(
+        self,
+        embed_size: int = 512,
+        heads: int = 8,
+        ff_dim: int = 2048,
+        dropout: float = 0.1,
+    ):
         super().__init__()
         self.embed_size = embed_size
         self.drop = nn.Dropout(dropout)
         self.transformer_block = TransformerBlock(
-            embed_size=embed_size, heads=heads, dropout=dropout
+            embed_size=embed_size, heads=heads, ff_dim=ff_dim, dropout=dropout
         )
         self.multi_head_attention = SelfAttention(embed_size, heads)
         self.norm = nn.LayerNorm(embed_size)
@@ -133,15 +149,24 @@ class Decoder(nn.Module):
         heads: int = 8,
         device: str = "cuda",
         max_seq_len: int = 100,
+        ff_dim: int = 2048,
         dropout: float = 0.1,
     ):
         super().__init__()
         self.device = device
         self.token_embedding = Embedding(
-            vocab_size, embed_size, device=device, dropout=dropout
+            vocab_size,
+            embed_size,
+            device=device,
+            dropout=dropout,
         )
         self.layers = nn.ModuleList(
-            [DecoderBlock(embed_size, heads, dropout) for _ in range(num_layers)]
+            [
+                DecoderBlock(
+                    embed_size=embed_size, heads=heads, dropout=dropout, ff_dim=ff_dim
+                )
+                for _ in range(num_layers)
+            ]
         )
         self.fc = nn.Linear(embed_size, vocab_size)
 
@@ -169,6 +194,7 @@ class Transformer(nn.Module):
         dropout: float = 0.1,
         src_pad_idx: int = 0,
         tgt_pad_idx: int = 0,
+        ff_dim: int = 2048,
     ):
         super().__init__()
         self.encoder = Encoder(
@@ -178,6 +204,7 @@ class Transformer(nn.Module):
             heads=heads,
             device=device,
             max_seq_len=max_seq_len,
+            ff_dim=ff_dim,
             dropout=dropout,
         )
         self.decoder = Decoder(
@@ -187,6 +214,7 @@ class Transformer(nn.Module):
             heads=heads,
             device=device,
             max_seq_len=max_seq_len,
+            ff_dim=ff_dim,
             dropout=dropout,
         )
         self.src_pad_idx = src_pad_idx
