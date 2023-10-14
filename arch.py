@@ -87,6 +87,7 @@ class Encoder(nn.Module):
             max_seq_len=max_seq_len,
             n=10_000,
             dropout=dropout,
+            device=device,
         )
         self.layers = nn.ModuleList(
             [
@@ -136,7 +137,9 @@ class Decoder(nn.Module):
     ):
         super().__init__()
         self.device = device
-        self.token_embedding = Embedding(vocab_size, embed_size)
+        self.token_embedding = Embedding(
+            vocab_size, embed_size, device=device, dropout=dropout
+        )
         self.layers = nn.ModuleList(
             [DecoderBlock(embed_size, heads, dropout) for _ in range(num_layers)]
         )
