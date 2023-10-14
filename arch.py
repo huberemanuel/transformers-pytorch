@@ -27,24 +27,24 @@ class SelfAttention(nn.Module):
         keys = self.keys(keys)
         queries = self.queries(queries)
 
-        # Esse split parece incompatível
         values = values.reshape(N, value_len, self.heads, self.head_dim)
         keys = keys.reshape(N, key_len, self.heads, self.head_dim)
         queries = queries.reshape(N, query_len, self.heads, self.head_dim)
 
-        energy = torch.einsum("nqhd,nkhd->nhqk", [queries, keys])
+        queries = queries.permute(0, 2, 1, 3)
+        keys = keys.permute(0, 2, 3, 1)
+        values = values.permute(0, 2, 1, 3)
+
+        scores = torch.matmul(queries, keys)
 
         if mask is not None:
-            energy = energy.masked_fill(mask == 0, float("-1e20"))
+            scores = scores.masked_fill(mask == 0, float("-1e20"))
 
         # TODO: Test with dim=2, since Q and V come from the source sentence.
-        attention = torch.softmax(energy / (self.embed_size ** (1 / 2)), dim=-1)
+        scores = torch.softmax(scores / (self.embed_size ** (1 / 2)), dim=-1)
+        attention = torch.matmul(scores, values).reshape(N, query_len, self.embed_size)
 
-        out = torch.einsum("nhql,nlhd->nqhd", [attention, values]).reshape(
-            N, query_len, self.embed_size
-        )
-
-        out = self.fc_out(out)
+        out = self.fc_out(attention)
         return out
 
 
