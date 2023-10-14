@@ -263,9 +263,9 @@ class Embedding(nn.Module):
         self.max_seq_len = max_seq_len
         self.device = device
         self.embed = nn.Embedding(vocab_size, dim)
-        self.pe = torch.tensor(positional_encoding(self.max_seq_len, self.dim)).to(
-            device
-        )
+        self.pe = torch.tensor(
+            positional_encoding(max_seq_len=self.max_seq_len, dim=self.dim, n=n)
+        ).to(device)
         self.drop = nn.Dropout(dropout)
 
     def forward(self, x):
