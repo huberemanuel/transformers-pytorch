@@ -98,7 +98,7 @@ class Encoder(nn.Module):
             n=10_000,
             dropout=dropout,
             device=device,
-        )
+        ).to(device)
         self.layers = nn.ModuleList(
             [
                 TransformerBlock(
@@ -169,7 +169,7 @@ class Decoder(nn.Module):
                 )
                 for _ in range(num_layers)
             ]
-        )
+        ).to(device)
         self.fc = nn.Linear(embed_size, vocab_size)
 
     def forward(self, x, enc_out, src_mask=None, tgt_mask=None):
@@ -264,7 +264,7 @@ class Embedding(nn.Module):
         self.device = device
         self.embed = nn.Embedding(vocab_size, dim)
         self.pe = torch.tensor(
-            positional_encoding(max_seq_len=self.max_seq_len, dim=self.dim, n=n)
+            positional_encoding(max_seq_len=self.max_seq_len, dim=self.dim, n=n),
         ).to(device)
         self.drop = nn.Dropout(dropout)
 
