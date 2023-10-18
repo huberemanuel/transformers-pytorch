@@ -1,4 +1,5 @@
 import tokenizers
+import transformers
 from tokenizers import models, pre_tokenizers, trainers, decoders, processors
 import datasets
 
@@ -27,9 +28,12 @@ if __name__ == "__main__":
     )
 
     tok.train_from_iterator(batch_iterator(), trainer=trainer)
+    tok.enable_padding(pad_id=tok.token_to_id(pad_token), pad_token=pad_token)
+
     sent = "Succesfully created BPE tokenizer :)"
     enc = tok.encode(sent)
     print(f"Encoded sentence: {enc.tokens}")
     print(f"Decoded sentence: {tok.decode(enc.ids)}")
 
-    tok.save("vocab.json")
+    tok = transformers.PreTrainedTokenizerFast(tokenizer_object=tok)
+    tok.save_pretrained("bpe_tok")
