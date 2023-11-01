@@ -8,8 +8,8 @@ if __name__ == "__main__":
     data = datasets.load_dataset("wmt14", "de-en")
     batch_size = 1_000
     vocab_size = 37_000
-    unk_token = "[UNK]"
-    pad_token = "[PAD]"
+    unk_token = "<unk>"
+    pad_token = "<pad>"
 
     tok = tokenizers.Tokenizer(models.BPE(unk_token=unk_token))
     tok.pre_tokenizer = pre_tokenizers.ByteLevel(add_prefix_space=False)
@@ -35,5 +35,8 @@ if __name__ == "__main__":
     print(f"Encoded sentence: {enc.tokens}")
     print(f"Decoded sentence: {tok.decode(enc.ids)}")
 
-    tok = transformers.PreTrainedTokenizerFast(tokenizer_object=tok)
+    tok = transformers.PreTrainedTokenizerFast(
+        tokenizer_object=tok,
+        unk_token=unk_token,
+    )
     tok.save_pretrained("bpe_tok")
